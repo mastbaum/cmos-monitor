@@ -21,10 +21,8 @@ class RateSpeaker:
     def __init__(self, freq, prescale):
         self.freq = freq
         self.prescale = prescale
-    def start(self, device, freq, prescale=None):
+    def start(self, device, freq):
         self.freq = freq
-        if prescale:
-            self.prescale = prescale
         if hasattr(self, 'stream'):
             self.stop()
         self.stream = device.create_tone(self.freq / self.prescale)
@@ -36,7 +34,7 @@ class RateSpeaker:
 VRateSpeaker = numpy.vectorize(RateSpeaker)
 
 class RateMonitor:
-    def __init__(self, prescale=None):
+    def __init__(self, mode='max', prescale=None):
         devices = audiere.get_devices()
         if 'oss' in devices:
             self.device = audiere.open_device('oss')
@@ -45,26 +43,50 @@ class RateMonitor:
         else:
             raise RuntimeError('no suitable audio device found!')
 
-        freq = numpy.zeros((CRATES, SLOTS, CHANNELS), dtype=numpy.float32)
+        self.mode = mode
+        channels = numpy.zeros((CRATES, SLOTS, CHANNELS), dtype=numpy.float32)
         if not prescale:
             prescale = numpy.ones_like(freq)
 
-        self.channels = numpy.empty((CRATES, SLOTS, CHANNELS), dtype=object)
-        self.channels[:,:,:] = VRateSpeaker(freq, prescale)
+        self.speakers = numpy.empty_like(channels)
+        self.speakers[:,:,:] = VRateSpeaker(freq, prescale)
 
-    def update_channel(self, crate, slot, channel, freq, prescale=None):
-        if freq == 0:
-            self.channels[crate][slot][channel].stop()
-        else:
-            self.channels[crate][slot][channel].start(self.device, freq, prescale)
+    def update_channel(self, crate, slot, channel, freq):
+        self.channels[crate][slot][channel] = freq / prescale
+
+        if self.mode == 'max':
+            max_freq = max(self.channels)
+            self.speakers[0][0][0].start(self.device, max_freq)
+
+        if self.mode == 'crate':
+            max_freq = numpy.max(numpy.max(channels, axis=2), axis=1)
+            self.speakers[crate][0][0].start(self.device, max_freq[crate])
+
+        if self.mode == 'slot':
+            max_freq = numpy.max(channels, axis=2)
+            self.speakers[crate][slot][0].start(self.device, max_freq[crate][slot])
+
+        if self.mode == 'channel':
+            print '10000 streams probably not a good idea'
+            #self.speakers[crate][slot][channel].start(self.device, frequency)
 
 if __name__ == '__main__':
-    client = avalanche.Client(sys.argv[1])
-    monitor = RateMonitor()
+    client = avalanche.Client()
+    client.add_dispatcher(sys.argv[1])
+
+    mode = 'crate'
+    if len(sys.argv) > 2:
+        mode = sys.argv[2]
+
+    prescale = None
+    if len(sys.argv) > 3:
+        prescale = sys.argv[3]
+
+    monitor = RateMonitor(mode=mode, prescale=prescale)
 
     print 'cmos_monitor running...'
     while True:
-        rec = client.recv_object(ROOT.CMOSRates.Class())
+        rec = client.recv()
 
         if rec:
             print 'received rates for crate', rec.crate
