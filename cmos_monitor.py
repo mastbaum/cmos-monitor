@@ -53,22 +53,22 @@ class RateMonitor:
         self.speakers[:,:,:] = VRateSpeaker(self.channels, prescale)
 
     def update_channel(self, crate, slot, channel, freq):
-        print 'update channel:', crate, slot, channel, freq
+        #print 'update channel:', crate, slot, channel, freq
         self.channels[crate][slot][channel] = freq / self.prescale[crate][slot][channel]
 
     def update_speaker(self):
         if self.mode == 'max':
             max_freq = numpy.max(self.channels)
-            print 'start 0 0 0'
+            #print 'start 0 0 0'
             self.speakers[0][0][0].start(self.device, max_freq)
 
         if self.mode == 'crate':
-            print 'start %s 0 0' % crate
+            #print 'start %s 0 0' % crate
             max_freq = numpy.max(numpy.max(self.channels, axis=2), axis=1)
             self.speakers[crate][0][0].start(self.device, max_freq[crate])
 
         if self.mode == 'slot':
-            print 'start %s % 0' % (crate, slot)
+            #print 'start %s % 0' % (crate, slot)
             max_freq = numpy.max(self.channels, axis=2)
             self.speakers[crate][slot][0].start(self.device, max_freq[crate][slot])
 
