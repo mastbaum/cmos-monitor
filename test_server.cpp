@@ -5,7 +5,7 @@
 #include <iostream>
 #include "PackedEvent.hh"
 
-#define CRATES 1
+#define CRATES 19
 #define SLOTS 8
 #define CHANNELS 32
 
@@ -17,6 +17,7 @@ int main(int argc, char* argv[]) {
     return 1;
 
   if (strcmp(argv[1], "noise") == 0) {
+      std::cout << "make some noise..." << std::endl;
     while(1) {
       for (int icrate=0; icrate<CRATES; icrate++) {
         SNOT::CMOSRate r;
@@ -33,6 +34,7 @@ int main(int argc, char* argv[]) {
     }
   }
   else if (strcmp(argv[1], "song") == 0) {
+    std::cout << "bwahahaha!" << std::endl;
     const int n = 10;
     float notes[n] = {0.0, 880.0, 783.99, 880.0, 783.99, 698.46, 659.26, 587.33, 554.37, 587.33};
     float times[n] = {1, 0.5, 0.75, 2, 0.5, 0.5, 0.5, 0.5, 2, 3};
@@ -43,6 +45,7 @@ int main(int argc, char* argv[]) {
       r.crate = 0;
       memset(&(r.rates), 0, 32*16*sizeof(float));
       r.rates[0] = notes[i];
+      std::cout << "sending" << std::endl;
       serv.sendObject(&r);
       usleep(600000 * times[i]);
     }
@@ -51,8 +54,32 @@ int main(int argc, char* argv[]) {
     r.errorflags = 0;
     r.crate = 0;
     memset(&(r.rates), 0, 32*16*sizeof(float));
+    std::cout << "sending" << std::endl;
     serv.sendObject(&r);
 
+  }
+  else if (strcmp(argv[1], "tone") == 0) {
+    std::cout << "tone" << std::endl;
+    SNOT::CMOSRate r;
+    r.errorflags = 0;
+    r.crate = 0;
+    memset(&(r.rates), 0, 32*16*sizeof(r.rates[0]));
+    r.rates[0] = 440;
+    std::cout << "sending" << std::endl;
+    serv.sendObject(&r);
+  }
+  else if (strcmp(argv[1], "crates") == 0) {
+    std::cout << "crates" << std::endl;
+    for (unsigned short i=0; i<CRATES; i++) {
+      SNOT::CMOSRate r;
+      r.errorflags = 0;
+      r.crate = i;
+      memset(&(r.rates), 0, 32*16*sizeof(r.rates[0]));
+      r.rates[5] = 110 * i;
+      std::cout << "sending" << std::endl;
+      serv.sendObject(&r);
+      usleep(600000);
+    }
   }
 
   return 0;

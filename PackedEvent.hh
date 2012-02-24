@@ -226,7 +226,7 @@ class CMOSRate: public TObject {
 		unsigned int channelmask[16];
 		unsigned int delay;
 		int errorflags;
-		float rates[8*32];
+		float rates[16*32];
 		ClassDef(CMOSRate, 1);
 };
 

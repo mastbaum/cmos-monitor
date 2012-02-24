@@ -18,10 +18,11 @@ def get_sc(n):
     return slot, chan
 
 class RateSpeaker:
-    def __init__(self, freq, prescale):
+    def __init__(self, freq, prescale=1):
         self.freq = freq
         self.prescale = prescale
     def start(self, device, freq):
+        print 'start'
         self.freq = freq
         if hasattr(self, 'stream'):
             self.stop()
@@ -29,12 +30,13 @@ class RateSpeaker:
         self.stream.play()
     def stop(self):
         if hasattr(self, 'stream'):
+            print 'stop'
             self.stream.stop()
 
 VRateSpeaker = numpy.vectorize(RateSpeaker)
 
 class RateMonitor:
-    def __init__(self, mode='max', prescale=None):
+    def __init__(self, mode='max', prescale=1):
         devices = audiere.get_devices()
         if 'oss' in devices:
             self.device = audiere.open_device('oss')
@@ -44,26 +46,30 @@ class RateMonitor:
             raise RuntimeError('no suitable audio device found!')
 
         self.mode = mode
-        channels = numpy.zeros((CRATES, SLOTS, CHANNELS), dtype=numpy.float32)
-        if not prescale:
-            prescale = numpy.ones_like(channels)
+        self.channels = numpy.zeros((CRATES, SLOTS, CHANNELS), dtype=numpy.float32)
+        self.prescale = numpy.ones_like(self.channels) * prescale
 
-        self.speakers = numpy.empty_like(channels)
-        self.speakers[:,:,:] = VRateSpeaker(channels, prescale)
+        self.speakers = numpy.empty_like(self.channels, dtype=object)
+        self.speakers[:,:,:] = VRateSpeaker(self.channels, prescale)
 
     def update_channel(self, crate, slot, channel, freq):
-        self.channels[crate][slot][channel] = freq / prescale
+        print 'update channel:', crate, slot, channel, freq
+        self.channels[crate][slot][channel] = freq / self.prescale[crate][slot][channel]
 
+    def update_speaker(self):
         if self.mode == 'max':
-            max_freq = max(self.channels)
+            max_freq = numpy.max(self.channels)
+            print 'start 0 0 0'
             self.speakers[0][0][0].start(self.device, max_freq)
 
         if self.mode == 'crate':
-            max_freq = numpy.max(numpy.max(channels, axis=2), axis=1)
+            print 'start %s 0 0' % crate
+            max_freq = numpy.max(numpy.max(self.channels, axis=2), axis=1)
             self.speakers[crate][0][0].start(self.device, max_freq[crate])
 
         if self.mode == 'slot':
-            max_freq = numpy.max(channels, axis=2)
+            print 'start %s % 0' % (crate, slot)
+            max_freq = numpy.max(self.channels, axis=2)
             self.speakers[crate][slot][0].start(self.device, max_freq[crate][slot])
 
         if self.mode == 'channel':
@@ -77,24 +83,29 @@ if __name__ == '__main__':
     mode = 'crate'
     if len(sys.argv) > 2:
         mode = sys.argv[2]
+        if mode not in ['max', 'crate', 'slot', 'channel']:
+            print 'unknown mode'
+            sys.exit(1)
 
-    prescale = None
+    prescale = 1
     if len(sys.argv) > 3:
         prescale = sys.argv[3]
 
     monitor = RateMonitor(mode=mode, prescale=prescale)
 
-    print 'cmos_monitor running...'
+    print 'cmos_monitor running in %s mode...' % mode
     while True:
-        rec = client.recv(blocking=True)
+        rec = client.recv()
 
-        if rec and isinstance(rec, ROOT.SNOT.CMOSRate):
-            print 'received rates for crate', rec.crate
-            crate = rec.crate
-            for i in range(len(rec.rates)):
-                slot, channel = get_sc(i)
-                rate = rec.rates[i]
-                monitor.update_channel(crate, slot, channel, rate)
-        else:
-            print 'error deserializing message data'
+        if rec:
+            if isinstance(rec, ROOT.SNOT.CMOSRate):
+                print 'received rates for crate', rec.crate
+                crate = rec.crate
+                for i in range(len(rec.rates)):
+                    slot, channel = get_sc(i)
+                    rate = rec.rates[i]
+                    monitor.update_channel(crate, slot, channel, rate)
+                monitor.update_speaker()
+            else:
+                print 'bad data received'
 
