@@ -87,9 +87,9 @@ if __name__ == '__main__':
             print 'unknown mode'
             sys.exit(1)
 
-    prescale = 1
+    prescale = 1.0
     if len(sys.argv) > 3:
-        prescale = sys.argv[3]
+        prescale = float(sys.argv[3])
 
     monitor = RateMonitor(mode=mode, prescale=prescale)
 
