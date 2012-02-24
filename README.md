@@ -24,3 +24,17 @@ Syntax:
     PRESCALE (optional)
         Multiply the rates by this number to compute the tone that is played. Can be <1.
 
+Testing
+-------
+To test the monitor, you can run `test_server` (build with `./build.sh`, have to `.L PackedEvent.hh++` first):
+
+    ./test_server MODE
+
+    MODE (required)
+        * `noise`: random frequency on each channel
+        * `song`: play a song on 0/0/0
+        * `crates`: play 110 on crate 0, 220 on crate 1, etc. all on channel 5/0.
+        * `tone`: play an A440 on 0/0/0.
+
+Use `localhost:5024` as the ADDRESS for cmos_monitor.py.
+
