@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <avalanche.hpp>
 #include <iostream>
-#include "CMOSRates.h"
+#include "PackedEvent.hh"
 
 #define CRATES 1
 #define SLOTS 8
@@ -11,7 +11,7 @@
 
 int main(int argc, char* argv[]) {
   avalanche::server serv("tcp://*:5024");
-  srand (time(NULL));
+  srand(time(NULL));
 
   if (argc == 1)
     return 1;
@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
   if (strcmp(argv[1], "noise") == 0) {
     while(1) {
       for (int icrate=0; icrate<CRATES; icrate++) {
-        CMOSRates r;
+        SNOT::CMOSRate r;
         r.errorflags = 0;
         r.crate = icrate;
         for (int islot=0; islot<SLOTS; islot++) {
@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
     float times[n] = {1, 0.5, 0.75, 2, 0.5, 0.5, 0.5, 0.5, 2, 3};
 
     for (int i=0; i<n; i++) {
-      CMOSRates r;
+      SNOT::CMOSRate r;
       r.errorflags = 0;
       r.crate = 0;
       memset(&(r.rates), 0, 32*16*sizeof(float));
@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
       usleep(600000 * times[i]);
     }
 
-    CMOSRates r;
+    SNOT::CMOSRate r;
     r.errorflags = 0;
     r.crate = 0;
     memset(&(r.rates), 0, 32*16*sizeof(float));

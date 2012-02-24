@@ -6,7 +6,7 @@ import audiere
 import numpy
 import ROOT
 
-ROOT.gROOT.ProcessLine(".L CMOSRates.h+")
+ROOT.gROOT.ProcessLine(".L PackedEvent.hh++")
 
 CRATES = 19
 SLOTS = 16
@@ -46,10 +46,10 @@ class RateMonitor:
         self.mode = mode
         channels = numpy.zeros((CRATES, SLOTS, CHANNELS), dtype=numpy.float32)
         if not prescale:
-            prescale = numpy.ones_like(freq)
+            prescale = numpy.ones_like(channels)
 
         self.speakers = numpy.empty_like(channels)
-        self.speakers[:,:,:] = VRateSpeaker(freq, prescale)
+        self.speakers[:,:,:] = VRateSpeaker(channels, prescale)
 
     def update_channel(self, crate, slot, channel, freq):
         self.channels[crate][slot][channel] = freq / prescale
@@ -86,9 +86,9 @@ if __name__ == '__main__':
 
     print 'cmos_monitor running...'
     while True:
-        rec = client.recv()
+        rec = client.recv(blocking=True)
 
-        if rec:
+        if rec and isinstance(rec, ROOT.SNOT.CMOSRate):
             print 'received rates for crate', rec.crate
             crate = rec.crate
             for i in range(len(rec.rates)):
