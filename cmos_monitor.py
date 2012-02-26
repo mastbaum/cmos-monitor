@@ -22,7 +22,6 @@ class RateSpeaker:
         self.freq = freq
         self.prescale = prescale
     def start(self, device, freq):
-        print 'start'
         self.freq = freq
         if hasattr(self, 'stream'):
             self.stop()
@@ -30,7 +29,6 @@ class RateSpeaker:
         self.stream.play()
     def stop(self):
         if hasattr(self, 'stream'):
-            print 'stop'
             self.stream.stop()
 
 VRateSpeaker = numpy.vectorize(RateSpeaker)
